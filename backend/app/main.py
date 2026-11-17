@@ -5,11 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import DomainError
 from app.db.session import get_db
-from app.routers import buildings, contracts, registrations, rooms
+from app.routers import (buildings, contracts, incidents, invoices, registrations, rooms,
+                         statistics, utilities)
 
 app = FastAPI(
     title="Hệ thống quản lý ký túc xá sinh viên",
-    version="0.1.0",
+    version="0.2.0",
     description="API quản lý tòa nhà, phòng, đăng ký phòng, hợp đồng, hóa đơn điện nước, sự cố.",
 )
 
@@ -29,3 +30,7 @@ app.include_router(buildings.router, prefix="/api/buildings", tags=["Tòa nhà"]
 app.include_router(rooms.router, prefix="/api/rooms", tags=["Phòng"])
 app.include_router(registrations.router, prefix="/api/registrations", tags=["Đăng ký phòng"])
 app.include_router(contracts.router, prefix="/api/contracts", tags=["Hợp đồng"])
+app.include_router(utilities.router, prefix="/api/utilities", tags=["Điện nước"])
+app.include_router(invoices.router, prefix="/api/invoices", tags=["Hóa đơn"])
+app.include_router(incidents.router, prefix="/api/incidents", tags=["Sự cố"])
+app.include_router(statistics.router, prefix="/api/statistics", tags=["Thống kê"])
