@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+storage/
+tests/
+postman/
+.pytest_cache/
+.ruff_cache/
+requirements-dev.txt
+pyproject.toml

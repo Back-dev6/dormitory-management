@@ -1,0 +1,57 @@
+name: dormitory
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Thiếu POSTGRES_USER trong file .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Thiếu POSTGRES_PASSWORD trong file .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Thiếu POSTGRES_DB trong file .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data      # dữ liệu CSDL bền vững
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"   # chỉ mở cho máy chủ, để chạy pytest/công cụ CSDL
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?Thiếu JWT_SECRET trong file .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      STORAGE_DIR: /app/storage
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
+    volumes:
+      - uploads:/app/storage                 # ảnh sự cố bền vững
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"                               # chỉ các container khác (Nginx) gọi được
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  pgdata:
+  uploads:
