@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.deps import STAFF, get_current_user, require_roles
+from app.core.deps import STAFF, require_roles
 from app.db.session import get_db
 from app.models import Building, Registration, Room, User
 from app.models.enums import RegistrationStatus, Role

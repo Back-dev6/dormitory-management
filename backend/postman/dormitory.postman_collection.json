@@ -1,0 +1,1346 @@
+{
+  "info": {
+    "name": "Hệ thống quản lý ký túc xá",
+    "description": "Chạy bằng Collection Runner (thứ tự từ trên xuống). Cần seed dữ liệu mẫu và API đang chạy.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Hệ thống",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"CSDL hoạt động\", () => pm.expect(pm.response.json().database).to.eql(\"up\"));",
+                  "pm.test(\"Có header bảo mật\", () => { pm.response.to.have.header(\"X-Content-Type-Options\"); pm.response.to.have.header(\"X-Frame-Options\"); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"runId\", Date.now().toString());"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Xác thực",
+      "item": [
+        {
+          "name": "Đăng nhập sai mật khẩu (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@ktx.edu.vn\",\"password\":\"Sai@12345\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng nhập Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"admin@ktx.edu.vn\", \"password\": \"Admin@123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"adminToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng nhập Cán bộ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"canbo@ktx.edu.vn\", \"password\": \"Canbo@123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"mgrToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xem thông tin (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Vai trò ADMIN\", () => pm.expect(pm.response.json().role).to.eql(\"ADMIN\"));",
+                  "pm.test(\"Không lộ password_hash\", () => pm.expect(pm.response.json()).to.not.have.property(\"password_hash\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xem thông tin không token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng ký sinh viên mới (role luôn STUDENT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"pm{{runId}}@example.com\",\"password\":\"Matkhau123\",\"full_name\":\"Sinh Vien Postman\",\"student_code\":\"PM{{runId}}\",\"gender\":\"MALE\",\"role\":\"ADMIN\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Vai trò vẫn là STUDENT\", () => pm.expect(pm.response.json().role).to.eql(\"STUDENT\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng ký trùng email (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"pm{{runId}}@example.com\",\"password\":\"Matkhau123\",\"full_name\":\"Trung Email\",\"student_code\":\"PX{{runId}}\",\"gender\":\"MALE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng ký mật khẩu yếu (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"yeu{{runId}}@example.com\",\"password\":\"chuacoso\",\"full_name\":\"Mat Khau Yeu\",\"student_code\":\"YE{{runId}}\",\"gender\":\"MALE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng nhập sinh viên mới",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"pm{{runId}}@example.com\",\"password\":\"Matkhau123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"stuToken\", pm.response.json().access_token);",
+                  "pm.collectionVariables.set(\"stuRefresh\", pm.response.json().refresh_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token (xoay vòng)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refresh_token\":\"{{stuRefresh}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"oldRefresh\", pm.collectionVariables.get(\"stuRefresh\"));",
+                  "pm.collectionVariables.set(\"stuRefresh\", pm.response.json().refresh_token);",
+                  "pm.collectionVariables.set(\"stuToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dùng lại refresh token cũ (401, thu hồi toàn bộ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refresh_token\":\"{{oldRefresh}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đăng nhập lại sinh viên mới",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"pm{{runId}}@example.com\",\"password\":\"Matkhau123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"stuToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Tòa và phòng",
+      "item": [
+        {
+          "name": "Danh sách tòa",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/buildings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"buildingId\", pm.response.json()[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Phòng nam còn chỗ (lọc)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms?gender=MALE&available_only=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json().items;",
+                  "pm.test(\"Có phòng nam còn chỗ\", () => pm.expect(items.length).to.be.above(0));",
+                  "pm.test(\"Tất cả đều còn chỗ\", () => items.forEach(r => pm.expect(r.available_beds).to.be.above(0)));",
+                  "pm.collectionVariables.set(\"roomId\", items[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chi tiết phòng",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms/{{roomId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lọc giá sai khoảng (422)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms?min_price=500&max_price=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sinh viên tạo phòng (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rooms",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"building_id\":{{buildingId}},\"room_number\":\"X1\",\"floor\":1,\"max_beds\":2,\"price_per_bed\":\"100000\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Đăng ký phòng và hợp đồng",
+      "item": [
+        {
+          "name": "Sinh viên gửi đơn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/registrations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"room_id\":{{roomId}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Trạng thái PENDING\", () => pm.expect(pm.response.json().status).to.eql(\"PENDING\"));",
+                  "pm.collectionVariables.set(\"regId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Gửi đơn lần hai (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/registrations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"room_id\":{{roomId}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sinh viên tự duyệt (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/registrations/{{regId}}/approve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cán bộ duyệt đơn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/registrations/{{regId}}/approve",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Có hợp đồng ACTIVE\", () => pm.expect(pm.response.json().contract.status).to.eql(\"ACTIVE\"));",
+                  "pm.collectionVariables.set(\"contractId\", pm.response.json().contract.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duyệt lại (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/registrations/{{regId}}/approve",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hợp đồng của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/contracts/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Có 1 hợp đồng\", () => pm.expect(pm.response.json().length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Điện nước và hóa đơn",
+      "item": [
+        {
+          "name": "Cán bộ tạo phòng thử",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rooms",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"building_id\":{{buildingId}},\"room_number\":\"PM{{runId}}\",\"floor\":9,\"max_beds\":2,\"price_per_bed\":\"100000\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"newRoomId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ghi chỉ số tháng hiện tại (tự sinh hóa đơn)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/utilities/readings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"room_id\":{{newRoomId}},\"month\":{{month}},\"year\":{{year}},\"electric_new\":120,\"water_new\":8,\"electric_old\":0,\"water_old\":0}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 201\", () => pm.response.to.have.status(201));",
+                  "const inv = pm.response.json().invoice;",
+                  "pm.test(\"Số điện, nước đúng\", () => { pm.expect(inv.electric_usage).to.eql(120); pm.expect(inv.water_usage).to.eql(8); });",
+                  "pm.test(\"Tổng = phòng + điện + nước\", () => pm.expect(parseFloat(inv.total)).to.eql(parseFloat(inv.room_fee) + parseFloat(inv.electric_amount) + parseFloat(inv.water_amount)));",
+                  "pm.test(\"Chưa thanh toán\", () => pm.expect(inv.status).to.eql(\"UNPAID\"));",
+                  "pm.collectionVariables.set(\"invoiceId\", inv.id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date();",
+                  "pm.collectionVariables.set(\"month\", d.getMonth() + 1);",
+                  "pm.collectionVariables.set(\"year\", d.getFullYear());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ghi trùng tháng (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/utilities/readings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"room_id\":{{newRoomId}},\"month\":{{month}},\"year\":{{year}},\"electric_new\":200,\"water_new\":9}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date();",
+                  "pm.collectionVariables.set(\"month\", d.getMonth() + 1);",
+                  "pm.collectionVariables.set(\"year\", d.getFullYear());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Danh sách hóa đơn theo tháng",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices?month={{month}}&year={{year}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Có hóa đơn\", () => pm.expect(pm.response.json().total).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sinh viên xem danh sách tất cả hóa đơn (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đánh dấu đã thanh toán",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices/{{invoiceId}}/pay"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"PAID\", () => pm.expect(pm.response.json().status).to.eql(\"PAID\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Thanh toán lần hai (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices/{{invoiceId}}/pay"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xuất Excel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices/export?month={{month}}&year={{year}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Là file Excel\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"spreadsheetml\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sinh viên xuất Excel (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/invoices/export"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Sự cố",
+      "item": [
+        {
+          "name": "Sinh viên gửi sự cố (form-data)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/incidents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Hỏng vòi nước",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Vòi nước nhà tắm bị rò",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"incidentId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cán bộ: bắt đầu xử lý",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/incidents/{{incidentId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cán bộ: hoàn tất",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/incidents/{{incidentId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"RESOLVED\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quay lại trạng thái cũ (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/incidents/{{incidentId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Thống kê và tài khoản",
+      "item": [
+        {
+          "name": "Tỷ lệ lấp đầy theo tòa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/statistics/occupancy"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Có danh sách tòa\", () => pm.expect(pm.response.json().buildings.length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sinh viên xem thống kê (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{stuToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/statistics/occupancy"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin liệt kê tài khoản",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cán bộ liệt kê tài khoản (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Dọn dẹp",
+      "item": [
+        {
+          "name": "Cán bộ kết thúc hợp đồng (trả giường)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{mgrToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/contracts/{{contractId}}/end"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã trả về là 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    }
+  ]
+}
