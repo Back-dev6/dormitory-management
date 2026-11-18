@@ -16,6 +16,8 @@ from app.models import Building, Contract, Registration, Room, User
 from app.models.enums import Gender
 
 BASE = "http://127.0.0.1:8000"
+MANAGER_EMAIL = "canbo@ktx.edu.vn"      # tài khoản cán bộ trong seed
+MANAGER_PASSWORD = "Canbo@123"
 BEDS = 2          # số giường của phòng thử
 APPLICANTS = 6    # số đơn cùng được duyệt một lúc
 
@@ -53,6 +55,11 @@ def main():
         httpx.get(f"{BASE}/api/health", timeout=5).raise_for_status()
     except httpx.HTTPError:
         raise SystemExit(f"Không kết nối được API tại {BASE}. Hãy chạy 'uvicorn app.main:app' ở cửa sổ CMD khác rồi thử lại.")
+    login = httpx.post(f"{BASE}/api/auth/login", timeout=30,
+                       json={"email": MANAGER_EMAIL, "password": MANAGER_PASSWORD})
+    if login.status_code != 200:
+        raise SystemExit(f"Đăng nhập cán bộ thất bại ({login.status_code}): {login.json().get('detail')}")
+    token = login.json()["access_token"]
     manager_id, room_id, reg_ids, student_ids = setup()
     print(f"Phòng thử có {BEDS} giường, {APPLICANTS} đơn chờ duyệt, duyệt ĐỒNG THỜI...")
     barrier = threading.Barrier(APPLICANTS)
@@ -62,7 +69,7 @@ def main():
         with httpx.Client(base_url=BASE, timeout=60) as client:
             barrier.wait()  # tất cả cùng xuất phát một lúc
             r = client.post(f"/api/registrations/{reg_id}/approve",
-                            headers={"X-User-Id": str(manager_id)}, json={})
+                            headers={"Authorization": f"Bearer {token}"}, json={})
             results.append((reg_id, r.status_code, r.json().get("detail", "OK")))
 
     threads = [threading.Thread(target=approve, args=(rid,)) for rid in reg_ids]

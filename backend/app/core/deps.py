@@ -1,30 +1,29 @@
-from typing import Annotated
-
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from app.core.security import TokenError, decode_token
 from app.db.session import get_db
 from app.models import User
 from app.models.enums import Role
 
+# tokenUrl giúp nút "Authorize" của Swagger đăng nhập được
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
+_BEARER = {"WWW-Authenticate": "Bearer"}
 
-def get_current_user(
-    x_user_id: Annotated[
-        int | None,
-        Header(description="TẠM THỜI (GĐ4): id người dùng. GĐ5 sẽ thay bằng JWT."),
-    ] = None,
-    db: Session = Depends(get_db),
-) -> User:
-    """Xác định người dùng hiện tại.
 
-    Bản tạm: đọc header X-User-Id. Ở GĐ5 chỉ cần viết lại hàm này để đọc JWT,
-    các router giữ nguyên vì chúng chỉ phụ thuộc vào get_current_user/require_roles.
-    """
-    if x_user_id is None:
-        raise HTTPException(401, "Thiếu header X-User-Id (bản tạm, GĐ5 thay bằng JWT)")
-    user = db.get(User, x_user_id)
+def get_current_user(token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+    """Xác định người dùng từ JWT access token (header Authorization: Bearer ...)."""
+    if not token:
+        raise HTTPException(401, "Chưa đăng nhập", headers=_BEARER)
+    try:
+        payload = decode_token(token, expected_type="access")
+    except TokenError as e:
+        raise HTTPException(401, e.message, headers=_BEARER)
+    user = db.get(User, int(payload["sub"]))
+    # Quyền lấy từ CSDL (không tin claim "role") nên đổi quyền/khóa tài khoản có hiệu lực ngay
     if user is None or not user.is_active:
-        raise HTTPException(401, "Người dùng không tồn tại hoặc đã bị khóa")
+        raise HTTPException(401, "Tài khoản không tồn tại hoặc đã bị khóa", headers=_BEARER)
     return user
 
 
