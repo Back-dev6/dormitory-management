@@ -1,0 +1,8 @@
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; font-size: 14px; }
+th { background: #e8eef4; }
+.scroll { overflow-x: auto; }
+.form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 12px; }
+.form-row label { font-weight: normal; }
+.bar { background: #dde3ea; border-radius: 6px; height: 14px; min-width: 120px; }
+.bar > div { background: var(--main); height: 100%; border-radius: 6px; }

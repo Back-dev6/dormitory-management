@@ -1,0 +1,26 @@
+:root { --main: #1f4e78; --bg: #f4f6f8; --err: #c0392b; --ok: #1e8449; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Calibri, Arial, sans-serif; background: var(--bg); color: #222; }
+main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 16px; background: var(--main); color: #fff; }
+.nav a { color: #fff; margin-right: 8px; text-decoration: none; }
+.nav nav { display: flex; gap: 8px; }
+.spacer { flex: 1; }
+button { background: var(--main); color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+button.danger { background: var(--err); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.nav button { background: #fff; color: var(--main); }
+.card { background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px #0002; }
+.card h3 { margin: 0 0 6px; }
+.card p { margin: 4px 0; }
+.narrow { max-width: 380px; margin: 40px auto; }
+form { display: flex; flex-direction: column; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+label.inline { flex-direction: row; align-items: center; font-weight: normal; }
+input, select { padding: 8px; border: 1px solid #bbb; border-radius: 6px; font-size: 15px; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.row { display: flex; gap: 8px; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px; }
+.error { color: var(--err); } .ok { color: var(--ok); }
+@media (max-width: 600px) { .who { display: none; } }
