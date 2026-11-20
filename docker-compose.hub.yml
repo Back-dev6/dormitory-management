@@ -1,0 +1,9 @@
+# Chạy hệ thống bằng image đã đẩy lên Docker Hub (không build tại chỗ):
+#   docker compose -f docker-compose.yml -f docker-compose.hub.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.hub.yml up -d --no-build
+# Cần thêm dòng DOCKERHUB_USERNAME=<tên Docker Hub của bạn> vào file .env
+services:
+  api:
+    image: ${DOCKERHUB_USERNAME:?Thiếu DOCKERHUB_USERNAME trong file .env}/dormitory-api:latest
+  web:
+    image: ${DOCKERHUB_USERNAME:?Thiếu DOCKERHUB_USERNAME trong file .env}/dormitory-web:latest
