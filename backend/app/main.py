@@ -16,9 +16,11 @@ app = FastAPI(
     description="API quản lý tòa nhà, phòng, đăng ký phòng, hợp đồng, hóa đơn điện nước, sự cố.\n\n"
                 "Bấm **Authorize**, nhập email vào ô *username* và mật khẩu để đăng nhập.",
     swagger_ui_parameters={"persistAuthorization": True},
+    # Đặt dưới /api/ để Nginx chuyển tiếp được (Nginx chỉ proxy các đường dẫn bắt đầu bằng /api/)
+    docs_url="/api/docs", redoc_url="/api/redoc", openapi_url="/api/openapi.json",
 )
 
-DOC_PATHS = ("/docs", "/redoc", "/openapi.json")
+DOC_PATHS = ("/api/docs", "/api/redoc", "/api/openapi.json")
 
 
 @app.exception_handler(DomainError)

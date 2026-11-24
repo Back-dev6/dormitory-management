@@ -215,3 +215,7 @@ def downgrade() -> None:
     op.drop_table('users')
     op.drop_table('buildings')
     # ### end Alembic commands ###
+    # vá: xóa các kiểu ENUM khi downgrade
+    for enum_name in ("gender", "user_role", "registration_status",
+                      "contract_status", "invoice_status", "incident_status"):
+        op.execute(f"DROP TYPE IF EXISTS {enum_name}")

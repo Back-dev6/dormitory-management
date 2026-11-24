@@ -65,8 +65,10 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - name: Migration chạy được trên CSDL trống và khớp với model
+      - name: Migration chạy được (cả downgrade) và khớp với model
         run: |
+          alembic upgrade head
+          alembic downgrade base
           alembic upgrade head
           alembic check
       - run: pytest
