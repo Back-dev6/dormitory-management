@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { errorText } from "../api.js";
 import { useAuth } from "../auth.jsx";
 
@@ -35,6 +35,7 @@ export default function Login() {
         {error && <p className="error">{error}</p>}
         <button disabled={busy}>{busy ? "Đang đăng nhập..." : "Đăng nhập"}</button>
       </form>
+      <p>Chưa có tài khoản? <Link to="/register">Đăng ký</Link></p>
     </section>
   );
 }

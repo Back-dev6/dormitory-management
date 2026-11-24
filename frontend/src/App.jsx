@@ -6,6 +6,7 @@ import Registrations from "./pages/Registrations.jsx";
 import Invoices from "./pages/Invoices.jsx";
 import Incidents from "./pages/Incidents.jsx";
 import Stats from "./pages/Stats.jsx";
+import Register from "./pages/Register.jsx";
 import "./extra.css";
 
 function RequireAuth({ children }) {
@@ -34,13 +35,14 @@ export default function App() {
             <button onClick={logout}>Đăng xuất</button>
           </>
         ) : (
-          <Link to="/login">Đăng nhập</Link>
+          <><Link to="/login">Đăng nhập</Link><Link to="/register">Đăng ký</Link></>
         )}
       </header>
       <main>
         <Routes>
           <Route path="/" element={<Rooms />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/registrations" element={<RequireAuth><Registrations /></RequireAuth>} />
           <Route path="/invoices" element={<RequireAuth><Invoices /></RequireAuth>} />
           <Route path="/incidents" element={<RequireAuth><Incidents /></RequireAuth>} />
